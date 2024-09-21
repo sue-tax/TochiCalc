@@ -3,6 +3,10 @@ Created on 2024/09/18
 
 @author: sue-t
 '''
+# https://houmukyoku.moj.go.jp/gifu/content/001342280.pdf
+# https://www.moj.go.jp/content/000116464.pdf
+
+__version__ = '0.02'
 
 if __name__ == '__main__':
     pass
@@ -10,12 +14,15 @@ if __name__ == '__main__':
 from lxml import etree
 
 str_file_name = '27128-1200-38.xml'
-list_chiban = (('城見', '２丁目', '2-6'), ('城見', '２丁目', '2-1'), ('城見', '２丁目', '2-7'))
+list_chiban = {('城見', '２丁目', '2-6'), ('城見', '２丁目', '2-1'), ('城見', '２丁目', '2-7')}
+# list_chiban = {('城見', '１丁目', '3-1'), ('城見', '１丁目', '4-1') }
 
 g_chiban_keijo = {}  # { '城見', '119') : 'F000000xxx' , ... }
 g_chiban_kyokai = {}  # { '119': 境界リスト, ... }
                         # 境界 ("C0000xxxxx", P1, P2))
 g_point_set = set()     # { (P1,P2), ... }
+g_point_dict0 = {}      # { P1: (P2,P3), ... }
+g_point_dict1 = {}      # { P2: (P1,P4), ... }
 g_jogai_point_set = set()   # [ P9, P8, ... ]
 g_point_list = []     # [ P1, P2, ... ]
 g_zahyo_list = []   # [(x,y), ... ]
@@ -49,9 +56,12 @@ for chiban in list_chiban:
         print("エラー", chiban[0], chiban[1], chiban[2], len(list_keijo), "形状")
         exit(-1)
     # print(list_keijo[0])
-    g_chiban_keijo[chiban] = list_keijo[0] 
-# print("フェイズ１")
+    g_chiban_keijo[chiban] = list_keijo[0]
+del list_hitsu
+del list_keijo 
+print("フェイズ１")
 # print(g_chiban_keijo)
+print(len(g_chiban_keijo), "筆")
 
 for (ooaza, choume, chiban), keijo in g_chiban_keijo.items():
     str_xml_surface = './/zmn:GM_Surface[@id="' + \
@@ -89,64 +99,149 @@ for (ooaza, choume, chiban), keijo in g_chiban_keijo.items():
                 list_point[0].get("idref"), list_point[1].get("idref")))
         # print(list_kyokai)
     g_chiban_kyokai[(ooaza, choume, chiban)] = list_kyokai
-# print("フェイズ２")
+del list_surface
+del list_curve
+print("フェイズ２")
 # print(g_chiban_kyokai)
+print(len(g_chiban_kyokai), "筆")
+# カーブ数もカウントして表示
 
-list_kyokai_point = []
-for chiban_kyokai in g_chiban_kyokai.values():
-    for kyokai in chiban_kyokai:
-        list_kyokai_point.append((kyokai[1], kyokai[2]))
-# print(list_kyokai_point)
-while len(list_kyokai_point) > 0:
-    kyokai_point = list_kyokai_point.pop(0)
-    if kyokai_point in list_kyokai_point:
-        g_jogai_point_set.add(kyokai_point[0])
-        g_jogai_point_set.add(kyokai_point[1])
-        list_kyokai_point.remove(kyokai_point)
-    elif (kyokai_point[1], kyokai_point[0]) in list_kyokai_point:
-        g_jogai_point_set.add(kyokai_point[0])
-        g_jogai_point_set.add(kyokai_point[1])
-        list_kyokai_point.remove(
-                (kyokai_point[1], kyokai_point[0]))
-    else:
-        g_point_set.add(kyokai_point)
-# print("フェイズ３")
+set_kyokai_point = set()
+for list_kyokai in g_chiban_kyokai.values():
+    for kyokai in list_kyokai:
+        # 重複したら、除外へ
+        if kyokai[1] < kyokai[2]:
+            # print(kyokai[1], "<", kyokai[2])
+            if (kyokai[1], kyokai[2]) in set_kyokai_point:
+                g_jogai_point_set.add(kyokai[1])
+                g_jogai_point_set.add(kyokai[2])
+                set_kyokai_point.remove((kyokai[1], kyokai[2]))
+            else:
+                set_kyokai_point.add((kyokai[1], kyokai[2]))
+        else:
+            # print(kyokai[1], ">", kyokai[2])
+            if (kyokai[2], kyokai[1]) in set_kyokai_point:
+                g_jogai_point_set.add(kyokai[2])
+                g_jogai_point_set.add(kyokai[1])
+                set_kyokai_point.remove((kyokai[2], kyokai[1]))
+            else:
+                set_kyokai_point.add((kyokai[2], kyokai[1]))
+# print(set_kyokai_point)
+while len(set_kyokai_point) > 0:
+    kyokai_point = set_kyokai_point.pop()
+    g_point_set.add(kyokai_point)
+del set_kyokai_point
+print("フェイズ３")
 # print(g_point_set)
 # print(len(g_point_set))
-# print(list_kyokai_point)
+# print(set_kyokai_point)
 # print(g_jogai_point_set)
+print(len(g_point_set), "ポイント")
 
 # jogai_point_setから、g_point_setに含まれるものを除外する
 for point in g_point_set:
+    if point[0] in g_point_dict0:
+        l = g_point_dict0[point[0]]
+        l.append(point[1])
+        g_point_dict0[point[0]] = l
+    else:
+        g_point_dict0[point[0]] = [point[1]]
+    if point[1] in g_point_dict1:
+        l = g_point_dict1[point[1]]
+        l.append(point[0])
+        g_point_dict1[point[1]] = l
+    else:
+        g_point_dict1[point[1]] = [point[0]]
     if point[0] in g_jogai_point_set:
         g_jogai_point_set.remove(point[0])
     if point[1] in g_jogai_point_set:
         g_jogai_point_set.remove(point[1])
-# print("フェイズ４")
+print("フェイズ４")
 # print(g_jogai_point_set)
+# print(g_point_dict0)
+# print(g_point_dict1)
+print("除外", len(g_jogai_point_set), "ポイント")
 
 # g_point_set から、順番にポイントをリストに
 (point0, point1) = g_point_set.pop()
 g_point_list.append(point0)
 g_point_list.append(point1)
+# print(point0)
+# print(point1)
+l = g_point_dict0[point0]
+if len(l) == 1:
+    if l[0] == point1:
+        g_point_dict0.pop(point0)
+else:
+    l.remove(point1)
+    g_point_dict0[point0] = l
+l = g_point_dict1[point1]
+if len(l) == 1:
+    if l[0] == point0:
+        g_point_dict1.pop(point1)
+else:
+    l.remove(point0)
+    g_point_dict1[point1] = l
+# print(g_point_dict0)
+# print(g_point_dict1)
 while True:
-    for (pointA, pointB) in g_point_set:
-        if pointA == point1:
-            g_point_list.append(pointB)
-            g_point_set.remove((pointA, pointB))
-            point1 = pointB
-            break
-        elif pointB == point1:
-            g_point_list.append(pointA)
-            g_point_set.remove((pointA, pointB))
-            point1 = pointA
-            break
-    if len(g_point_set) == 0:
-        g_point_list.remove(point1)
+    # print(point1)
+    # print(g_point_dict0)
+    # print(g_point_dict1)
+    if point1 in g_point_dict0:
+        list_pointB = g_point_dict0[point1]
+        if len(list_pointB) != 1:
+            print("エラー", point1, list_pointB)
+            exit(1)
+        pointB = list_pointB[0]
+        g_point_list.append(pointB)
+        # print(point1, pointB)
+        g_point_dict0.pop(point1, list_pointB)
+        # g_point_dict1.pop(pointB, point1)
+        l = g_point_dict1[pointB]
+        if len(l) == 1:
+            g_point_dict1.pop(pointB, l)
+        else:
+            l.remove(point1)
+            g_point_dict1[pointB] = l
+        g_point_set.remove((point1, pointB))
+    elif point1 in g_point_dict1:
+        list_pointB = g_point_dict1[point1]
+        if len(list_pointB) != 1:
+            print("エラー", point1, list_pointB)
+            exit(1)
+        pointB = list_pointB[0]
+        g_point_list.append(pointB)
+        # print(pointB, point1)
+        g_point_dict1.pop(point1, list_pointB)
+        l = g_point_dict0[pointB]
+        if len(l) == 1:
+            g_point_dict0.pop(pointB, l)
+        else:
+            l.remove(point1)
+            g_point_dict0[pointB] = l
+        # g_point_dict0.pop(point1, list_pointB)
+        g_point_set.remove((pointB, point1))
+    else:
+        if point1 != g_point_list[0]:
+            print("ERR")
+            print(g_point_list)
+            print(g_point_set)
+            print(g_point_dict0)
+            print(g_point_dict1)
+            print("エラー",  point1, "つながる先がない")
+            exit(-1)
+        print(g_point_set)
+        print("警告 指定された土地が隣接していない")
         break
-# print("フェイズ５")
+    if len(g_point_set) == 0:
+        g_point_list.remove(pointB)
+        break
+    point1 = pointB
+print("フェイズ５")
 # print(g_point_list)
 # print(g_point_set)
+print(len(g_point_list), "ポイント")
 
 # 順番に座標をリストに
 for point in g_point_list:
@@ -165,7 +260,7 @@ for point in g_point_list:
         print("エラー",  point, "Y", len(list_x))
         exit(-1)
     g_zahyo_list.append((list_x[0], list_y[0]))
-# print("フェイズ６")
+print("フェイズ６")
 # print(g_zahyo_list)
 
 print("================================")
@@ -183,5 +278,8 @@ for point in g_point_list:
 print("-------------------------------")
 for zahyo in g_zahyo_list:
     print(float(zahyo[0]), ",", float(zahyo[1]))
+print("-------------------------------")
+for point_pair in zip(g_point_list, g_zahyo_list):
+    print(point_pair[0], ",", point_pair[1][0], ",", point_pair[1][1])
 print("-------------------------------")
 print(len(g_point_list))
