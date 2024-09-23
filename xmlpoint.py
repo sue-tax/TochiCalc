@@ -6,7 +6,9 @@ Created on 2024/09/18
 # https://houmukyoku.moj.go.jp/gifu/content/001342280.pdf
 # https://www.moj.go.jp/content/000116464.pdf
 
-__version__ = '0.03'
+# ドーナツ状の土地は、一部、うまく動作しないことがある
+
+__version__ = '0.04'
 
 if __name__ == '__main__':
     pass
@@ -20,10 +22,18 @@ list_chiban = {('城見', '２丁目', '', '2-6'), ('城見', '２丁目', '', '
 # str_file_name = '23202-1803-19.xml'
 # list_chiban = {('井田町', '', '字二本木東', '37') }
 
-str_file_name = '27106-1203-8.xml'
-list_chiban = {('千代崎', '３丁目', '', '15-1'), ('千代崎', '３丁目', '', '15-1'), ('千代崎', '３丁目', '', '15-2'),('千代崎', '３丁目', '', '15-3'),('千代崎', '３丁目', '', '15-4'),('千代崎', '３丁目', '', '15-5'),('千代崎', '３丁目', '', '15-6'),('千代崎', '３丁目', '', '15-7')}
-list_chiban = {('千代崎', '３丁目', '', '19')}
-list_chiban = {('千代崎', '３丁目', '', '15-1'), ('千代崎', '３丁目', '', '15-1'), ('千代崎', '３丁目', '', '15-2'),('千代崎', '３丁目', '', '15-3'),('千代崎', '３丁目', '', '15-4'),('千代崎', '３丁目', '', '15-5'),('千代崎', '３丁目', '', '15-6'),('千代崎', '３丁目', '', '15-7'), ('千代崎', '３丁目', '', '19')}
+# str_file_name = '27106-1203-8.xml'
+# list_chiban = {('千代崎', '３丁目', '', '15-1'), ('千代崎', '３丁目', '', '15-2'),('千代崎', '３丁目', '', '15-3'),('千代崎', '３丁目', '', '15-4'),('千代崎', '３丁目', '', '15-5'),('千代崎', '３丁目', '', '15-6'),('千代崎', '３丁目', '', '15-7')}
+
+# エラーになる
+# list_chiban = {('千代崎', '３丁目', '', '15-1'),  ('千代崎', '３丁目', '', '15-3')}
+
+# list_chiban = {('千代崎', '３丁目', '', '19')}
+# list_chiban = {('千代崎', '３丁目', '', '15-1'), ('千代崎', '３丁目', '', '15-1'), ('千代崎', '３丁目', '', '15-2'),('千代崎', '３丁目', '', '15-3'),('千代崎', '３丁目', '', '15-4'),('千代崎', '３丁目', '', '15-5'),('千代崎', '３丁目', '', '15-6'),('千代崎', '３丁目', '', '15-7'), ('千代崎', '３丁目', '', '19')}
+
+# str_file_name = '27207-1209-14.xml'
+# list_chiban = {('上牧北駅前町', '', '', '381-1') }
+
 
 display_flag = 1    # 0
 
@@ -44,6 +54,14 @@ _nm = {}
 _nm['nm'] = root.nsmap[None]
 _nm['zmn'] = root.nsmap["zmn"]
 _nm['xsi'] = root.nsmap["xsi"]
+
+# 重複を削除する
+from collections import Counter
+duplicate_elements = [item for item, count in Counter(list_chiban).items() if count > 1]
+if len(duplicate_elements) != 0:
+    print("警告", len(duplicate_elements), "土地が重複")
+    for duplicate in duplicate_elements:
+        print(duplicate[0], duplicate[1], duplicate[2], duplicate[3])
 
 for chiban in list_chiban:
     if len(chiban) != 4:
@@ -131,9 +149,10 @@ for (ooaza, choume, koaza, chiban), keijo in g_chiban_keijo.items():
             list_kyokai.append((curve_id, pointB, pointA))
         # print(list_kyokai)
         count_curve += 1
-    g_chiban_kyokai[(ooaza, choume, chiban)] = list_kyokai
+    g_chiban_kyokai[(ooaza, choume, koaza, chiban)] = list_kyokai
 del list_surface
 del list_curve
+del list_kyokai
 print("フェイズ２")
 # print(g_chiban_kyokai)
 print(len(g_chiban_kyokai), "筆")
@@ -257,7 +276,22 @@ while True:
             print("エラー",  point1, "つながる先がない")
             exit(-1)
         print(g_point_set)
-        print("警告 指定された土地が隣接していない")
+        print("警告 指定された土地が隣接していない、または、ドーナツ状")
+        set_hirinsetsu = set()
+        for point_set in g_point_set:
+            for chiban, list_kyokai in g_chiban_kyokai.items():
+                for curve in list_kyokai:
+                    if (point_set[0] == curve[1]) and \
+                            (point_set[1] == curve[2]):
+                        # print(point_set)
+                        # print(chiban)
+                        # print(list_kyokai)
+                        set_hirinsetsu.add(chiban)
+                        break
+                else:
+                    continue
+        print(set_hirinsetsu)
+        del set_hirinsetsu
         break
     if len(g_point_set) == 0:
         g_point_list.remove(pointB)
