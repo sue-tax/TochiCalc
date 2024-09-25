@@ -7,8 +7,7 @@ Created on 2024/09/18
 # https://www.moj.go.jp/content/000116464.pdf
 
 # ドーナツ状の土地は、一部、うまく動作しないことがある
-
-__version__ = '0.04'
+__version__ = '0.05'
 
 if __name__ == '__main__':
     pass
@@ -25,7 +24,13 @@ list_chiban = {('城見', '２丁目', '', '2-6'), ('城見', '２丁目', '', '
 # str_file_name = '27106-1203-8.xml'
 # list_chiban = {('千代崎', '３丁目', '', '15-1'), ('千代崎', '３丁目', '', '15-2'),('千代崎', '３丁目', '', '15-3'),('千代崎', '３丁目', '', '15-4'),('千代崎', '３丁目', '', '15-5'),('千代崎', '３丁目', '', '15-6'),('千代崎', '３丁目', '', '15-7')}
 
-# エラーになる
+# ドーナツ１
+# list_chiban = {('千代崎', '２丁目', '', '16-1'), ('千代崎', '２丁目', '', '16-2'), ('千代崎', '２丁目', '', '16-13'), ('千代崎', '２丁目', '', '16-14'), ('千代崎', '２丁目', '', '16-29'), ('千代崎', '２丁目', '', '16-12') }
+
+# ドーナツ２
+# list_chiban = {('千代崎', '２丁目', '', '16-1'), ('千代崎', '２丁目', '', '16-2'), ('千代崎', '２丁目', '', '16-13'), ('千代崎', '２丁目', '', '16-14'), ('千代崎', '２丁目', '', '16-29'), ('千代崎', '２丁目', '', '16-12'),
+#                  ('千代崎', '２丁目', '', '16-15'), ('千代崎', '２丁目', '', '16-26'), ('千代崎', '２丁目', '', '16-20'), ('千代崎', '２丁目', '', '16-3'), ('千代崎', '２丁目', '', '16-17'), ('千代崎', '２丁目', '', '16-16') }
+
 # list_chiban = {('千代崎', '３丁目', '', '15-1'),  ('千代崎', '３丁目', '', '15-3')}
 
 # list_chiban = {('千代崎', '３丁目', '', '19')}
@@ -34,6 +39,10 @@ list_chiban = {('城見', '２丁目', '', '2-6'), ('城見', '２丁目', '', '
 # str_file_name = '27207-1209-14.xml'
 # list_chiban = {('上牧北駅前町', '', '', '381-1') }
 
+# ドーナツ状になる土地の場合、外側の点と内側の点を一つずつ指定
+g_donut_point = [ '', '', '' ]
+# g_donut_point = [ 'P000000843', 'P000000542', '' ]
+# g_donut_point = [ 'P000000843', 'P000000542', 'P000001079' ]
 
 display_flag = 1    # 0
 
@@ -46,6 +55,9 @@ g_point_dict1 = {}      # { P2: (P1,P4), ... }
 g_jogai_point_set = set()   # [ P9, P8, ... ]
 g_point_list = []     # [ P1, P2, ... ]
 g_zahyo_list = []   # [(x,y), ... ]
+
+g_donut_point_list_list = []    # [ [P1,P2,...], ... ]
+g_donut_zahyo_list_list = []
 
 
 tree = etree.parse(str_file_name)
@@ -206,8 +218,18 @@ print("フェイズ４")
 # print(g_point_dict1)
 print("除外", len(g_jogai_point_set), "ポイント")
 
-# g_point_set から、順番にポイントをリストに
-(point0, point1) = g_point_set.pop()
+if len(g_donut_point) == 0 or g_donut_point[0] == '':
+    # g_point_set から、順番にポイントをリストに
+    (point0, point1) = g_point_set.pop()
+else:
+    for (point0, point1) in g_point_set:
+        if g_donut_point[0] == point0 or \
+                g_donut_point[0] == point1:
+            g_point_set.remove((point0, point1))
+            break;
+    else:
+        print("エラー", "指定された点が存在しない", g_donut_point[0])
+        exit(1)
 g_point_list.append(point0)
 g_point_list.append(point1)
 # print(point0)
@@ -226,16 +248,13 @@ if len(l) == 1:
 else:
     l.remove(point0)
     g_point_dict1[point1] = l
-# print(g_point_dict0)
-# print(g_point_dict1)
 while True:
-    # print(point1)
-    # print(g_point_dict0)
-    # print(g_point_dict1)
     if point1 in g_point_dict0:
         list_pointB = g_point_dict0[point1]
         if len(list_pointB) != 1:
             print("エラー", point1, list_pointB)
+            print("指定された土地が１点のみで隣接している可能性がある",
+                    point1)
             exit(1)
         pointB = list_pointB[0]
         g_point_list.append(pointB)
@@ -253,10 +272,11 @@ while True:
         list_pointB = g_point_dict1[point1]
         if len(list_pointB) != 1:
             print("エラー", point1, list_pointB)
+            print("指定された土地が１点のみで隣接している可能性がある",
+                    point1)
             exit(1)
         pointB = list_pointB[0]
         g_point_list.append(pointB)
-        # print(pointB, point1)
         g_point_dict1.pop(point1, list_pointB)
         l = g_point_dict0[pointB]
         if len(l) == 1:
@@ -293,10 +313,127 @@ while True:
         print(set_hirinsetsu)
         del set_hirinsetsu
         break
-    if len(g_point_set) == 0:
+    # if len(g_point_set) == 0:
+    #     # 要訂正かも？
+    #     g_point_list.remove(pointB)
+    #     break
+    if g_point_list[0] == pointB:
         g_point_list.remove(pointB)
         break
     point1 = pointB
+# ドーナツ状の内側
+for donut_point in g_donut_point[1:]:
+    if donut_point == '':
+        g_donut_point_list_list.append([])
+        continue
+    print("ドーナツ状の内側")
+    # print(donut_point)
+    for (point0, point1) in g_point_set:
+        if donut_point == point0 or \
+                donut_point == point1:
+            g_point_set.remove((point0, point1))
+            break;
+    else:
+        print("エラー", "指定された点が存在しない", donut_point)
+        exit(1)
+    point_list = []
+    point_list.append(point0)
+    point_list.append(point1)
+    # print(point0)
+    # print(point1)
+    l = g_point_dict0[point0]
+    if len(l) == 1:
+        if l[0] == point1:
+            g_point_dict0.pop(point0)
+    else:
+        l.remove(point1)
+        g_point_dict0[point0] = l
+    l = g_point_dict1[point1]
+    if len(l) == 1:
+        if l[0] == point0:
+            g_point_dict1.pop(point1)
+    else:
+        l.remove(point0)
+        g_point_dict1[point1] = l
+    # print(g_point_dict0)
+    # print(g_point_dict1)
+    while True:
+        # print(point1)
+        # print(g_point_dict0)
+        # print(g_point_dict1)
+        if point1 in g_point_dict0:
+            list_pointB = g_point_dict0[point1]
+            if len(list_pointB) != 1:
+                print("エラー", point1, list_pointB)
+                print("指定された土地が１点のみで隣接している可能性がある",
+                        point1)
+                exit(1)
+            pointB = list_pointB[0]
+            point_list.append(pointB)
+            # print(point1, pointB)
+            g_point_dict0.pop(point1, list_pointB)
+            l = g_point_dict1[pointB]
+            if len(l) == 1:
+                g_point_dict1.pop(pointB, l)
+            else:
+                l.remove(point1)
+                g_point_dict1[pointB] = l
+            g_point_set.remove((point1, pointB))
+        elif point1 in g_point_dict1:
+            list_pointB = g_point_dict1[point1]
+            if len(list_pointB) != 1:
+                print("エラー", point1, list_pointB)
+                print("指定された土地が１点のみで隣接している可能性がある",
+                        point1)
+                exit(1)
+            pointB = list_pointB[0]
+            point_list.append(pointB)
+            # print(pointB, point1)
+            g_point_dict1.pop(point1, list_pointB)
+            l = g_point_dict0[pointB]
+            if len(l) == 1:
+                g_point_dict0.pop(pointB, l)
+            else:
+                l.remove(point1)
+                g_point_dict0[pointB] = l
+            # g_point_dict0.pop(point1, list_pointB)
+            g_point_set.remove((pointB, point1))
+        else:
+            if point1 != point_list[0]:
+                print("ERR")
+                print(point_list)
+                print(g_point_set)
+                print(g_point_dict0)
+                print(g_point_dict1)
+                print("エラー",  point1, "つながる先がない")
+                exit(-1)
+            print(g_point_set)
+            print("警告 指定された土地が隣接していない")
+            set_hirinsetsu = set()
+            for point_set in g_point_set:
+                for chiban, list_kyokai in g_chiban_kyokai.items():
+                    for curve in list_kyokai:
+                        if (point_set[0] == curve[1]) and \
+                                (point_set[1] == curve[2]):
+                            # print(point_set)
+                            # print(chiban)
+                            # print(list_kyokai)
+                            set_hirinsetsu.add(chiban)
+                            break
+                    else:
+                        continue
+            print(set_hirinsetsu)
+            del set_hirinsetsu
+            break
+        # if len(g_point_set) == 0:
+        #     # 要訂正かも？
+        #     point_list.remove(pointB)
+        #     break
+        if point_list[0] == pointB:
+            point_list.remove(pointB)
+            break
+        point1 = pointB
+    g_donut_point_list_list.append(point_list)
 print("フェイズ５")
 # print(g_point_list)
 # print(g_point_set)
@@ -321,6 +458,27 @@ for point in g_point_list:
         print("エラー",  point, "Y", len(list_x))
         exit(-1)
     g_zahyo_list.append((list_x[0], list_y[0]))
+for donut_point_list in g_donut_point_list_list:
+    zahyo_list = []
+    for point in donut_point_list:
+        str_xml_point = './/zmn:GM_Point[@id="' + \
+                point + '"]'
+        list_point = tree.xpath(str_xml_point, namespaces=_nm)
+        if (len(list_point) != 1):
+            print("エラー",  point, len(list_point), "point")
+            exit(-1)
+        list_x = list_point[0].xpath('.//zmn:X/text()',
+                namespaces=_nm)
+        if (len(list_x) != 1):
+            print("エラー",  point, "X", len(list_x))
+            exit(-1)
+        list_y = list_point[0].xpath('.//zmn:Y/text()',
+                namespaces=_nm)
+        if (len(list_x) != 1):
+            print("エラー",  point, "Y", len(list_x))
+            exit(-1)
+        zahyo_list.append((list_x[0], list_y[0]))
+    g_donut_zahyo_list_list.append(zahyo_list)
 print("フェイズ６")
 # print(g_zahyo_list)
 
@@ -331,9 +489,10 @@ for jogai_point in g_jogai_point_set:
 if len(g_jogai_point_set) == 0:
     print("なし")
 print("================================")
+print("土地の境界")
 for point_pair in zip(g_point_list, g_zahyo_list):
     print(point_pair)
-print("================================")
+print("-------------------------------")
 for point in g_point_list:
     print(point)
 print("-------------------------------")
@@ -344,7 +503,27 @@ for point_pair in zip(g_point_list, g_zahyo_list):
     print(point_pair[0], ",", point_pair[1][0], ",", point_pair[1][1])
 print("-------------------------------")
 print(len(g_point_list))
-
+if len(g_donut_point) != 0 and g_donut_point[0] != '':
+    for i in range(len(g_donut_point)-1):
+        print("================================")
+        print("内側の境界")
+        for point_pair in \
+                zip(g_donut_point_list_list[i],
+                g_donut_zahyo_list_list[i]):
+            print(point_pair)
+        print("-------------------------------")
+        for point in g_donut_point_list_list[i]:
+            print(point)
+        print("-------------------------------")
+        for zahyo in g_donut_zahyo_list_list[i]:
+            print(float(zahyo[0]), ",", float(zahyo[1]))
+        print("-------------------------------")
+        for point_pair in \
+                zip(g_donut_point_list_list[i],
+                g_donut_zahyo_list_list[i]):
+            print(point_pair[0], ",", point_pair[1][0], ",", point_pair[1][1])
+        print("-------------------------------")
+        print(len(g_donut_point_list_list[i]))
 
 if display_flag:
     import matplotlib.pyplot as plt
@@ -385,5 +564,44 @@ if display_flag:
         x0 = x[i] + signx * a
         y0 = y[i] + signy * a
         plt.text(y0, x0, g_point_list[i][len(g_point_list[i])-l:])
-    
+
+    if len(g_donut_point) != 0 and g_donut_point[0] != '':
+        for d in range(len(g_donut_point)-1):
+            if len(g_donut_zahyo_list_list[d]) == 0:
+                continue
+            x = []
+            y = []
+            for zahyo in g_donut_zahyo_list_list[d]:
+                x.append(float(zahyo[0]))
+                y.append(float(zahyo[1]))
+            
+            min_x = min(x) - 20
+            max_x = max(x) + 20
+            min_y = min(y) - 20
+            max_y = max(y) + 20
+            plt.gca().set_ylim(min_x, max_x)
+            plt.gca().set_xlim(min_y, max_y)
+            plt.gca().set_aspect(1)
+            
+            x.append(float(g_donut_zahyo_list_list[d][0][0]))
+            y.append(float(g_donut_zahyo_list_list[d][0][1]))
+            plt.plot(y, x, marker = "o")
+            
+            avgx = sum(x) / len(x)
+            avgy = sum(y) / len(y) 
+            a = 1
+            l = 4
+            for i in range(len(g_donut_point_list_list[d])):
+                if x[i] > avgx:
+                    signx = 1
+                else:
+                    signx = -4
+                if y[i] > avgy:
+                    signy = 2
+                else:
+                    signy = -4 * l
+                x0 = x[i] + signx * a
+                y0 = y[i] + signy * a
+                plt.text(y0, x0, g_donut_point_list_list[d][i][len(g_point_list[i])-l:])
+
     plt.show()
