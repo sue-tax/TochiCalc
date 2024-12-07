@@ -529,78 +529,65 @@ def display():
     
     x.append(float(g_zahyo_list[0][0]))
     y.append(float(g_zahyo_list[0][1]))
-    plt.plot(y, x, marker = "o")
-    
-    avgx = sum(x) / len(x)
-    avgy = sum(y) / len(y) 
-    a = 1
+    plt.plot(y, x, color='black',
+             marker = "o", markerfacecolor='blue')
+   
     l = 4
     for i in range(len(g_point_list)):
-        # if x[i] > avgx:
-        #     signx = 1
-        # else:
-        #     signx = -4
-        # if y[i] > avgy:
-        #     signy = 2
-        # else:
-        #     signy = -4 * l
-        # x0 = x[i] + signx * a
-        # y0 = y[i] + signy * a
         x0 = x[i]
         y0 = y[i]
         plt.text(y0, x0,
                 g_point_list[i][len(g_point_list[i])-l:],
                 color='red')
 
-    if len(g_donut_point) != 0 and g_donut_point[0] != '':
-        for d in range(len(g_donut_point)-1):
-            if len(g_donut_zahyo_list_list[d]) == 0:
-                continue
-            x = []
-            y = []
-            for zahyo in g_donut_zahyo_list_list[d]:
-                x.append(float(zahyo[0]))
-                y.append(float(zahyo[1]))
-            
-            min_x = min(x) - 20
-            max_x = max(x) + 20
-            min_y = min(y) - 20
-            max_y = max(y) + 20
-            plt.gca().set_ylim(min_x, max_x)
-            plt.gca().set_xlim(min_y, max_y)
-            plt.gca().set_aspect(1)
-            
-            x.append(float(g_donut_zahyo_list_list[d][0][0]))
-            y.append(float(g_donut_zahyo_list_list[d][0][1]))
-            plt.plot(y, x, marker = "o")
-            
-            avgx = sum(x) / len(x)
-            avgy = sum(y) / len(y) 
-            # a = 1
-            # l = 4
-            for i in range(len(g_donut_point_list_list[d])):
-                # if x[i] > avgx:
-                #     signx = 1
-                # else:
-                #     signx = -4
-                # if y[i] > avgy:
-                #     signy = 2
-                # else:
-                #     signy = -4 * l
-                # x0 = x[i] + signx * a
-                # y0 = y[i] + signy * a
-                x0 = x[i]
-                y0 = y[i]
-                plt.text(y0, x0,
-                        g_donut_point_list_list[d][i][len(g_point_list[i])-l:],
-                        color='red')
+    # if len(g_donut_point) != 0 and g_donut_point[0] != '':
+    #     for d in range(len(g_donut_point)-1):
+    #         if len(g_donut_zahyo_list_list[d]) == 0:
+    #             continue
+    #         x = []
+    #         y = []
+    #         for zahyo in g_donut_zahyo_list_list[d]:
+    #             x.append(float(zahyo[0]))
+    #             y.append(float(zahyo[1]))
+    #
+    #         min_x = min(x) - 20
+    #         max_x = max(x) + 20
+    #         min_y = min(y) - 20
+    #         max_y = max(y) + 20
+    #         plt.gca().set_ylim(min_x, max_x)
+    #         plt.gca().set_xlim(min_y, max_y)
+    #         plt.gca().set_aspect(1)
+    #
+    #         x.append(float(g_donut_zahyo_list_list[d][0][0]))
+    #         y.append(float(g_donut_zahyo_list_list[d][0][1]))
+    #         plt.plot(y, x, marker = "o")
+    #
+    #         avgx = sum(x) / len(x)
+    #         avgy = sum(y) / len(y) 
+    #         # a = 1
+    #         # l = 4
+    #         for i in range(len(g_donut_point_list_list[d])):
+    #             # if x[i] > avgx:
+    #             #     signx = 1
+    #             # else:
+    #             #     signx = -4
+    #             # if y[i] > avgy:
+    #             #     signy = 2
+    #             # else:
+    #             #     signy = -4 * l
+    #             # x0 = x[i] + signx * a
+    #             # y0 = y[i] + signy * a
+    #             x0 = x[i]
+    #             y0 = y[i]
+    #             plt.text(y0, x0,
+    #                     g_donut_point_list_list[d][i][len(g_point_list[i])-l:],
+    #                     color='red')
     plt.show()
 
 
 if __name__ == '__main__':
-    
-    # excel_file_name = str(sys.argv[1])
-    excel_file_name = str("test.xlsx")
+    excel_file_name = str(sys.argv[1])
+    # excel_file_name = str("test.xlsx")
 
     openpyxl.reader.excel.warnings. \
             simplefilter('ignore') # warning 対策　入力規則無視
